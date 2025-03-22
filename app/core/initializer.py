@@ -22,20 +22,20 @@ class EnvironmentConfig:
     app_name: str
     debug_mode: bool
     environment: str  # prod/dev/test
-    
+
     # Основные пути
     project_root: Path
     python_path: str
-    
+
     # Директории приложения
     app_dir: Path
     config_dir: Path
     logs_dir: Path
     tmp_dir: Path
-    
+
     # Переменные окружения
     env_vars: Dict[str, str]
-    
+
     # Параметры логирования
     verbose_logging: bool
     log_level: str
@@ -91,7 +91,7 @@ class AppInitializer:
             dir_name: Directory name for error messages
 
         Raises:
-            ConfigurationError: If directory cannot be created or is not 
+            ConfigurationError: If directory cannot be created or is not
             writable
         """
         try:
@@ -123,7 +123,7 @@ class AppInitializer:
             ConfigurationError: If directories cannot be created
         """
         dirs = {}
-        
+
         # Настраиваем все необходимые директории
         for dir_name in self.REQUIRED_DIRS:
             dir_path = project_root / dir_name
@@ -132,10 +132,10 @@ class AppInitializer:
             self._console.debug(
                 f"Initialized {dir_name} directory: {dir_path}"
             )
-        
+
         # Добавляем директорию приложения
         dirs["app_dir"] = project_root / "app"
-        
+
         return dirs
 
     def _setup_console(self) -> None:
@@ -153,10 +153,10 @@ class AppInitializer:
     def _find_project_root(self) -> Path:
         """
         Find project root directory by looking for main.py or marker file.
-        
+
         Returns:
             Path to project root directory
-            
+
         Raises:
             ProjectRootNotFoundError: If project root directory cannot be found
         """
@@ -171,10 +171,10 @@ class AppInitializer:
                 raise ProjectRootNotFoundError(
                     f"PROJECT_ROOT path does not exist: {env_root}"
                 )
-        
+
         # Начинаем поиск от текущей директории
         current_dir = Path.cwd()
-        
+
         # Ищем файл-маркер или main.py
         while current_dir.parent != current_dir:  # До корня файловой системы
             # Проверяем наличие файла-маркера
@@ -184,7 +184,7 @@ class AppInitializer:
                     f"Found project root by marker: {marker_file.name}"
                 )
                 return current_dir
-            
+
             # Проверяем наличие main.py
             main_file = current_dir / self.MAIN_FILE
             if main_file.exists():
@@ -192,9 +192,9 @@ class AppInitializer:
                     f"Found project root by file: {main_file.name}"
                 )
                 return current_dir
-            
+
             current_dir = current_dir.parent
-        
+
         # Если не нашли - это критическая ошибка
         msg = (
             "Cannot find project root directory. "
@@ -214,45 +214,45 @@ class AppInitializer:
         """
         # Get project root
         project_root = self._find_project_root()
-        
+
         # Setup required directories
         dirs = self._setup_required_directories(project_root)
-        
+
         # Collect environment variables
         env_vars = {
             key: value
             for key, value in os.environ.items()
             if not key.startswith("_")
         }
-        
+
         # Create environment config
         self._env_config = EnvironmentConfig(
             # Базовые параметры
             app_name=os.getenv("APP_NAME", "my_python_app"),
             debug_mode=os.getenv("DEBUG", "False").lower() == "true",
             environment=os.getenv("ENVIRONMENT", "dev"),
-            
+
             # Основные пути
             project_root=project_root,
             python_path=sys.executable,
-            
+
             # Директории приложения
             app_dir=dirs["app_dir"],
             config_dir=dirs["config_dir"],
             logs_dir=dirs["logs_dir"],
             tmp_dir=dirs["tmp_dir"],
-            
+
             # Переменные окружения
             env_vars=env_vars,
-            
+
             # Параметры логирования
             verbose_logging=os.getenv("VERBOSE", "False").lower() == "true",
             log_level=os.getenv("LOG_LEVEL", "INFO").upper()
         )
-        
+
         # Store in state manager
         state_manager.set_state("env_config", self._env_config)
-        
+
         # Log environment setup
         self._console.log("Environment configuration initialized")
         self._console.debug(f"Project root: {project_root}")

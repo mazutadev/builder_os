@@ -35,4 +35,4 @@ class StateError(ApplicationError):
 
 class CommandError(ApplicationError):
     """Exception raised when there is a command execution error."""
-    pass 
+    pass

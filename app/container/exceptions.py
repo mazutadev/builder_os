@@ -82,3 +82,21 @@ class ContainerConfigError(ContainerError):
         - Неверный формат настроек
     """
     pass
+
+
+class ContainerRestartError(ContainerError):
+    """
+    Исключение, возникающее при ошибке перезапуска контейнера.
+
+    Примеры:
+
+    """
+    pass
+
+
+class ContainerRemoveError(ContainerError):
+    """
+    Исключение, возникающее при ошибке удаления контейнера.
+
+    """
+    pass

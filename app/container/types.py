@@ -3,7 +3,7 @@ from typing import Dict, Optional, Any
 from dataclasses import dataclass
 
 
-class ContainerType(Enum):
+class ContainerStatus(Enum):
     """Container status types"""
     CREATED = "created"
     RUNNING = "running"

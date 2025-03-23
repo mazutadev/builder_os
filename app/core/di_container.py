@@ -53,17 +53,17 @@ class DIContainer:
             The service instance if found, None otherwise
         """
         service_name = service_type.__name__
-        
+
         # Check if we have a registered instance
         if service_name in self._services:
             return self._services[service_name]
-        
+
         # Check if we have a factory
         if service_name in self._factories:
             instance = self._factories[service_name]()
             self._services[service_name] = instance
             return instance
-        
+
         return None
 
     def remove(self, service_type: Type[T]) -> None:
@@ -85,7 +85,3 @@ class DIContainer:
         """
         self._services.clear()
         self._factories.clear()
-
-
-# Create a global instance
-di_container = DIContainer() 

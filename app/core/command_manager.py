@@ -106,7 +106,7 @@ class CommandManager:
 
         try:
             command_parts = self._build_command(command)
-            
+
             if self._console:
                 self._console.debug(
                     f"Executing command: {' '.join(command_parts)}"
@@ -184,11 +184,11 @@ class CommandManager:
         """
         original_sudo = self.use_sudo
         original_user = self.sudo_user
-        
+
         try:
             self.use_sudo = True
             self.sudo_user = sudo_user
             return self.execute(command, **kwargs)
         finally:
             self.use_sudo = original_sudo
-            self.sudo_user = original_user 
+            self.sudo_user = original_user

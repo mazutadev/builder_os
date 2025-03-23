@@ -64,7 +64,3 @@ class StateManager:
             The complete state dictionary
         """
         return self._state.copy()
-
-
-# Create a global instance
-state_manager = StateManager()

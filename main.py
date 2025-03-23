@@ -22,21 +22,17 @@ def main():
     try:
         # Initialize all application components
         app_initializer.initialize()
-        
+
         # Get initialized components
         console = app_initializer.get_console()
-        cmd_manager = app_initializer.get_command_manager()
         env_config = app_initializer.get_env_config()
-        
+
         # Use environment configuration
-        console.log(f"Starting {env_config.app_name}...")
+        console.success(f"Starting {env_config.app_name}...")
         console.debug(f"Debug mode: {env_config.debug_mode}")
         console.debug(f"Running from: {env_config.project_root}")
-                
         # Add your main application logic here
 
-        console.log(env_config.tmp_dir)
-        
     except (InitializationError, ApplicationError) as e:
         print(
             "CRITICAL ERROR: Failed to initialize application",

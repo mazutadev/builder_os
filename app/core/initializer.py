@@ -6,11 +6,15 @@ import sys
 from pathlib import Path
 from typing import Optional, Dict
 from dataclasses import dataclass
-from .di_container import di_container
+from .di_container import DIContainer
 from .console import ConsoleManager
 from .command_manager import CommandManager
-from .state_manager import state_manager
-from .exceptions import ProjectRootNotFoundError, ConfigurationError
+from .state_manager import StateManager
+from .exceptions import (
+    ProjectRootNotFoundError,
+    ConfigurationError,
+    InitializationError
+)
 
 
 @dataclass
@@ -56,9 +60,11 @@ class AppInitializer:
         """
         Initialize the application initializer.
         """
+        self._di_container: Optional[DIContainer] = None
         self._console: Optional[ConsoleManager] = None
         self._command_manager: Optional[CommandManager] = None
         self._env_config: Optional[EnvironmentConfig] = None
+        self._state_manager: Optional[StateManager] = None
 
     def initialize(self) -> None:
         """
@@ -69,18 +75,37 @@ class AppInitializer:
             ConfigurationError: If required directories cannot be created
         """
         try:
-            self._setup_console()
+            self._setup_all_components()
             self._setup_environment()
-            self._setup_command_manager()
-            self._setup_state_manager()
             self._log_initialization_status()
         except (ProjectRootNotFoundError, ConfigurationError) as e:
             if self._console:
-                self._console.log(
+                self._console.error(
                     "CRITICAL ERROR: Cannot initialize application"
                 )
-                self._console.log(str(e))
+                self._console.error(str(e))
             raise
+
+    def _setup_all_components(self) -> None:
+        """
+        Setup all components.
+        """
+        self._setup_console()
+        self._setup_state_manager()
+        self._setup_command_manager()
+        self._setup_di_container()
+        self._add_components_to_di_container()
+
+    def _add_components_to_di_container(self) -> None:
+        """
+        Add components to di container.
+        """
+        self._di_container.register(StateManager, self._state_manager)
+        self._console.success("State manager added to di container")
+        self._di_container.register(CommandManager, self._command_manager)
+        self._console.success("Command manager added to di container")
+        self._di_container.register(ConsoleManager, self._console)
+        self._console.success("Console manager added to di container")
 
     def _ensure_directory(self, path: Path, dir_name: str) -> None:
         """
@@ -138,17 +163,50 @@ class AppInitializer:
 
         return dirs
 
+    def _setup_di_container(self) -> None:
+        """
+        Setup and configure di_container.
+        """
+        self._di_container = DIContainer()
+        self._console.success("DI container initialized")
+
     def _setup_console(self) -> None:
         """
         Setup and configure console manager.
         """
-        self._console = ConsoleManager()
-        self._console.set_prefix("App")
-        self._console.set_verbose(
-            os.getenv("DEBUG", "False").lower() == "true"
-        )
-        di_container.register(ConsoleManager, self._console)
-        self._console.log("Console manager initialized")
+        try:
+            self._console = ConsoleManager()
+            self._console.set_prefix("App")
+            self._console.set_verbose(
+                os.getenv("DEBUG", "False").lower() == "true"
+            )
+            self._console.success("Console manager initialized")
+        except InitializationError as e:
+            self._console.error(f"Error initializing console manager: {e}")
+            raise
+
+    def _setup_command_manager(self) -> None:
+        """
+        Setup and configure command manager.
+        """
+        try:
+            self._command_manager = CommandManager()
+            self._command_manager.set_console(self._console)
+            self._console.success("Command manager initialized")
+        except InitializationError as e:
+            self._console.error(f"Error initializing command manager: {e}")
+            raise
+
+    def _setup_state_manager(self) -> None:
+        """
+        Setup and configure state manager.
+        """
+        try:
+            self._state_manager = StateManager()
+            self._console.success("State manager initialized")
+        except InitializationError as e:
+            self._console.error(f"Error initializing state manager: {e}")
+            raise
 
     def _find_project_root(self) -> Path:
         """
@@ -251,10 +309,10 @@ class AppInitializer:
         )
 
         # Store in state manager
-        state_manager.set_state("env_config", self._env_config)
+        self._state_manager.set_state("env_config", self._env_config)
 
         # Log environment setup
-        self._console.log("Environment configuration initialized")
+        self._console.info("Environment configuration initialized")
         self._console.debug(f"Project root: {project_root}")
         self._console.debug(f"Environment: {self._env_config.environment}")
         self._console.debug(f"App directory: {self._env_config.app_dir}")
@@ -263,27 +321,11 @@ class AppInitializer:
         self._console.debug(f"Temporary directory: {self._env_config.tmp_dir}")
         self._console.debug(f"Log level: {self._env_config.log_level}")
 
-    def _setup_command_manager(self) -> None:
-        """
-        Setup and configure command manager.
-        """
-        self._command_manager = CommandManager()
-        self._command_manager.set_console(self._console)
-        di_container.register(CommandManager, self._command_manager)
-        self._console.log("Command manager initialized")
-
-    def _setup_state_manager(self) -> None:
-        """
-        Setup and configure state manager.
-        """
-        # State manager is already a singleton, just log its initialization
-        self._console.log("State manager initialized")
-
     def _log_initialization_status(self) -> None:
         """
         Log the status of all initialized components.
         """
-        self._console.log("Application initialization completed")
+        self._console.success("Application initialization completed")
         self._console.debug("Initialized components:")
         self._console.debug("- Console Manager")
         self._console.debug("- Command Manager")
@@ -317,6 +359,18 @@ class AppInitializer:
             EnvironmentConfig instance
         """
         return self._env_config
+
+    def get_state_manager(self) -> StateManager:
+        """
+        Get the state manager instance.
+        """
+        return self._state_manager
+
+    def get_di_container(self) -> DIContainer:
+        """
+        Get the di container instance.
+        """
+        return self._di_container
 
 
 # Create a global instance

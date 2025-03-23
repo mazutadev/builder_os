@@ -42,7 +42,7 @@ class ConsoleManager:
         Set verbose mode for console output.
 
         Args:
-            verbose: Whether to enable verbose output 
+            verbose: Whether to enable verbose output
         """
         self._is_verbose = verbose
 

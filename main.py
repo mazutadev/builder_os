@@ -35,8 +35,6 @@ def main():
         env_config = app_initializer.get_env_config()
         di_container = app_initializer.get_di_container()
 
-        
-
         # Use environment configuration
         console.success(f"Starting {env_config.app_name}...")
         console.debug(f"Debug mode: {env_config.debug_mode}")
@@ -46,6 +44,8 @@ def main():
         config_manager = ContainerConfigManager(di_container.get(StateManager))
         container_manager = ContainerManager(console, config_manager)
 
+        console.warning(f"Output directory: {env_config.output_dir}")
+
         config = ContainerConfig(
             os_type=OSType.UBUNTU,
             os_version='22.04',
@@ -53,7 +53,10 @@ def main():
             environment={
                 "DEBIAN_FRONTEND": "noninteractive",
             },
-            working_dir='/app'
+            working_dir='/app',
+            volumes={
+                f'{env_config.output_dir}': '/app/output',
+            },
         )
         try:
             console.info('Creating container')
@@ -62,14 +65,35 @@ def main():
             container_manager.start()
 
             console.info('Testing container')
+            
 
-            output = container_manager.execute('apt-get update')
+            output = container_manager.update_packages()
             console.debug(f'Update output: {output}')
 
-            output = container_manager.execute('apt-get install -y python3 python3-pip')
+
+            console.info('Installing squashfs-tools')
+            output = container_manager.install_package('squashfs-tools')
             console.debug(f'Install output: {output}')
 
-            output = container_manager.execute('python3 --version')
+            console.info('Installing linux-image-6.1.0-1-generic')
+            output = container_manager.install_package('linux-image-generic')
+            console.debug(f'Install output: {output}')
+
+            console.info('Updating initramfs')
+            output = container_manager.execute('update-initramfs -c -k all')
+            console.debug(f'Update initramfs output: {output}')
+
+            container_manager.execute(
+                'cp /boot/initrd.img-5.15.0-134-generic /app/output/initrd.img'
+            )
+
+            container_manager.execute(
+                'cp /boot/vmlinuz-5.15.0-134-generic /app/output/vmlinuz'
+            )
+
+            container_manager.execute(
+                'mksquashfs / /app/output/filesystem.squashfs -comp xz -b 1M'
+                )
             console.info(f'Python version: {output}')
 
             container_info = container_manager.get_container_info()

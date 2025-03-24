@@ -5,7 +5,7 @@ import docker
 from docker.models.containers import Container
 from docker.errors import DockerException
 
-from .types import ContainerStatus, ContainerConfig
+from .types import ContainerStatus, ContainerConfig, PackageManagerConfig
 from .config import ContainerConfigManager
 from .exceptions import (
     ContainerError,
@@ -64,11 +64,20 @@ class ContainerManager:
             self._console.info(f'Pulling image: {image_name}')
             self._client.images.pull(image_name)
 
+            if config.volumes:
+                volumes = {
+                    host_path: {
+                        'bind': container_path,
+                        'mode': 'rw'
+                    }
+                    for host_path, container_path in config.volumes.items()
+                }
+
             self._console.info(f'Creating container from {image_name}')
             self._container = self._client.containers.create(
                 image=image_name,
                 name=config.name,
-                volumes=config.volumes,
+                volumes=volumes,
                 environment=config.environment,
                 working_dir=config.working_dir,
                 command='sleep infinity',
@@ -207,3 +216,40 @@ class ContainerManager:
         except DockerException as e:
             self._console.error(f'Failed to get logs: {e}')
             return ''
+
+    def _get_package_manager(self) -> PackageManagerConfig:
+        """Get package manager configuration for current container"""
+        if not self._current_config:
+            raise ContainerError("No configuration available")
+        return self._config_manager.get_package_manager(
+            self._current_config.os_type)
+
+    def update_packages(self) -> None:
+        """Update package lists"""
+        pkg_manager = self._get_package_manager()
+        self.execute(pkg_manager.update_cmd)
+
+    def install_package(self, package_name: str) -> None:
+        """Install package using appropriate package manager"""
+        pkg_manager = self._get_package_manager()
+        self.execute(f"{pkg_manager.install_cmd} {package_name}")
+
+    def remove_package(self, package_name: str) -> None:
+        """Remove package using appropriate package manager"""
+        pkg_manager = self._get_package_manager()
+        self.execute(f"{pkg_manager.remove_cmd} {package_name}")
+
+    def search_package(self, query: str) -> str:
+        """Search for package using appropriate package manager"""
+        pkg_manager = self._get_package_manager()
+        return self.execute(f"{pkg_manager.search_cmd} {query}")
+
+    def list_installed_packages(self) -> str:
+        """List installed packages using appropriate package manager"""
+        pkg_manager = self._get_package_manager()
+        return self.execute(pkg_manager.list_cmd)
+
+    def clean_package_cache(self) -> None:
+        """Clean package cache using appropriate package manager"""
+        pkg_manager = self._get_package_manager()
+        self.execute(pkg_manager.clean_cmd)

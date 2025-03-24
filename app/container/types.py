@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 from dataclasses import dataclass
 
 
@@ -13,6 +13,8 @@ class ContainerStatus(Enum):
     REMOVING = "removing"
     ERROR = "error"
     UNKNOWN = "unknown"
+    STOPPED = "stopped"
+    DEAD = "dead"
 
 
 class OSType(Enum):
@@ -21,6 +23,31 @@ class OSType(Enum):
     DEBIAN = "debian"
     CENTOS = "centos"
     ALPINE = "alpine"
+    FEDORA = "fedora"
+
+
+class PackageManager(Enum):
+    """Package manager types"""
+    APT = "apt"
+    YUM = "yum"
+    DNF = "dnf"
+    PACMAN = "pacman"
+    ZYPPER = "zypper"
+    APK = "apk"
+
+
+@dataclass
+class PackageManagerConfig:
+    """Package manager configuration settings"""
+    update_cmd: str
+    install_cmd: str
+    remove_cmd: str
+    upgrade_cmd: str
+    search_cmd: str
+    list_cmd: str
+    show_cmd: str
+    clean_cmd: str
+    require_packages: List[str]
 
 
 @dataclass

@@ -39,3 +39,19 @@ ENV/
 htmlcov/
 .pytest_cache/
 .tox/ 
+
+# Output
+output/
+
+# Logs
+logs/
+
+# Temp
+tmp/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Testing
+.pytest_cache/

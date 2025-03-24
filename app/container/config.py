@@ -6,7 +6,9 @@ from dataclasses import dataclass
 from pathlib import Path
 import yaml
 
-from .types import OSType, ContainerConfig
+from .types import (
+    OSType, ContainerConfig, PackageManager, PackageManagerConfig
+)
 from .exceptions import ContainerConfigError
 from ..core.state_manager import StateManager
 
@@ -98,3 +100,90 @@ class ContainerConfigManager:
     def update_docker_settings(self, settings: DockerSettings) -> None:
         """Update Docker settings"""
         self._docker_settings = settings
+
+    def get_package_manager(self, os_type: OSType) -> PackageManagerConfig:
+        """Get package manager configuration for OS type"""
+        pkg_manager_type = OS_PACKAGE_MANAGER_MAPPING.get(os_type)
+        if not pkg_manager_type:
+            raise ContainerConfigError(f"Unsupported OS type: {os_type}")
+
+        return PACKAGE_MANAGER_CONFIGS[pkg_manager_type]
+
+
+# Package manager configuration
+PACKAGE_MANAGER_CONFIGS: Dict[PackageManager, PackageManagerConfig] = {
+    PackageManager.APT: PackageManagerConfig(
+        update_cmd="apt update",
+        install_cmd="apt install -y",
+        remove_cmd="apt remove -y",
+        upgrade_cmd="apt upgrade -y",
+        search_cmd="apt search",
+        list_cmd="apt list",
+        show_cmd="apt show",
+        clean_cmd="apt clean",
+        require_packages=["apt", "apt-utils", "apt-transport-https", "ca-certificates", "curl", "gnupg-agent", "software-properties-common"]
+    ),
+    PackageManager.YUM: PackageManagerConfig(
+        update_cmd="yum update -y",
+        install_cmd="yum install -y",
+        remove_cmd="yum remove -y",
+        upgrade_cmd="yum upgrade -y",
+        search_cmd="yum search",
+        list_cmd="yum list",
+        show_cmd="yum show",
+        clean_cmd="yum clean",
+        require_packages=["yum", "yum-utils", "epel-release", "python3", "python3-pip"]
+    ),
+    PackageManager.DNF: PackageManagerConfig(
+        update_cmd="dnf update -y",
+        install_cmd="dnf install -y",
+        remove_cmd="dnf remove -y",
+        upgrade_cmd="dnf upgrade -y",
+        search_cmd="dnf search",
+        list_cmd="dnf list",
+        show_cmd="dnf show",
+        clean_cmd="dnf clean",
+        require_packages=["dnf", "python3", "python3-pip"]
+    ),
+    PackageManager.PACMAN: PackageManagerConfig(
+        update_cmd="pacman -Syu --noconfirm",
+        install_cmd="pacman -S --noconfirm",
+        remove_cmd="pacman -Rns --noconfirm",
+        upgrade_cmd="pacman -Su --noconfirm",
+        search_cmd="pacman -Ss",
+        list_cmd="pacman -Ql",
+        show_cmd="pacman -Qi",
+        clean_cmd="pacman -Sc",
+        require_packages=["pacman", "python3", "python3-pip"]
+    ),
+    PackageManager.ZYPPER: PackageManagerConfig(
+        update_cmd="zypper refresh",
+        install_cmd="zypper install -y",
+        remove_cmd="zypper remove -y",
+        upgrade_cmd="zypper update -y",
+        search_cmd="zypper search",
+        list_cmd="zypper list",
+        show_cmd="zypper info",
+        clean_cmd="zypper clean",
+        require_packages=["zypper", "python3", "python3-pip"]
+    ),
+    PackageManager.APK: PackageManagerConfig(
+        update_cmd="apk update",
+        install_cmd="apk add",
+        remove_cmd="apk del",
+        upgrade_cmd="apk upgrade",
+        search_cmd="apk search",
+        list_cmd="apk list",
+        show_cmd="apk info",
+        clean_cmd="apk cache clean",
+        require_packages=["apk-tools", "python3", "python3-pip"]
+    )
+}
+
+OS_PACKAGE_MANAGER_MAPPING: Dict[OSType, PackageManager] = {
+    OSType.UBUNTU: PackageManager.APT,
+    OSType.DEBIAN: PackageManager.APT,
+    OSType.CENTOS: PackageManager.YUM,
+    OSType.FEDORA: PackageManager.DNF,
+    OSType.ALPINE: PackageManager.APK,
+}

@@ -36,6 +36,7 @@ class EnvironmentConfig:
     config_dir: Path
     logs_dir: Path
     tmp_dir: Path
+    output_dir: Path
 
     # Переменные окружения
     env_vars: Dict[str, str]
@@ -54,7 +55,7 @@ class AppInitializer:
     # Основной файл приложения
     MAIN_FILE = "main.py"
     # Обязательные директории
-    REQUIRED_DIRS = ["config", "logs", "tmp"]
+    REQUIRED_DIRS = ["config", "logs", "tmp", "output"]
 
     def __init__(self):
         """
@@ -299,6 +300,7 @@ class AppInitializer:
             config_dir=dirs["config_dir"],
             logs_dir=dirs["logs_dir"],
             tmp_dir=dirs["tmp_dir"],
+            output_dir=dirs["output_dir"],
 
             # Переменные окружения
             env_vars=env_vars,
@@ -319,6 +321,7 @@ class AppInitializer:
         self._console.debug(f"Config directory: {self._env_config.config_dir}")
         self._console.debug(f"Logs directory: {self._env_config.logs_dir}")
         self._console.debug(f"Temporary directory: {self._env_config.tmp_dir}")
+        self._console.debug(f"Output directory: {self._env_config.output_dir}")
         self._console.debug(f"Log level: {self._env_config.log_level}")
 
     def _log_initialization_status(self) -> None:

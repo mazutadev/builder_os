@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Dict, Optional, Any, List
 from dataclasses import dataclass
+from pathlib import Path
 
 
 class ContainerStatus(Enum):
@@ -24,6 +25,7 @@ class OSType(Enum):
     CENTOS = "centos"
     ALPINE = "alpine"
     FEDORA = "fedora"
+    ARCHLINUX = "archlinux"
 
 
 class PackageManager(Enum):
@@ -34,6 +36,16 @@ class PackageManager(Enum):
     PACMAN = "pacman"
     ZYPPER = "zypper"
     APK = "apk"
+
+
+@dataclass
+class DockerSettings:
+    """Docker settings"""
+    socket_path: str = 'unix://var/run/docker.sock'
+    api_version: str = 'auto'
+    timeout: int = 120
+    tls: bool = False
+    cert_path: Optional[Path] = None
 
 
 @dataclass

@@ -5,8 +5,12 @@ import docker
 from docker.models.containers import Container
 from docker.errors import DockerException
 
-from .types import ContainerStatus, ContainerConfig, PackageManagerConfig
-from .config import ContainerConfigManager
+
+from .types import ContainerStatus, ContainerConfig
+from .interfaces.config_manager import IContainerConfigManager
+from .interfaces.package_manager import IPackageManager
+from .interfaces.container_manager import IContainerManager
+from .package_manager import PackageManager
 from .exceptions import (
     ContainerError,
     ContainerCreateError,
@@ -19,17 +23,19 @@ from .exceptions import (
 from ..core.console import Console
 
 
-class ContainerManager:
+class ContainerManager(IContainerManager):
     """Manager for container operations"""
     def __init__(
             self,
             console: Console,
-            config_manager: ContainerConfigManager) -> None:
+            config_manager: IContainerConfigManager) -> None:
+        
         """Container Manager initialization"""
         self._console = console
         self._config_manager = config_manager
         self._container: Optional[Container] = None
         self._current_config: Optional[ContainerConfig] = None
+        self._package_manager: Optional[IPackageManager] = None
 
         try:
             docker_settings = config_manager.get_docker_settings()
@@ -41,6 +47,14 @@ class ContainerManager:
         except DockerException as e:
             self._console.error(f'Failed to initialize Docker client: {e}')
             raise ContainerError(f'Docker initialization failed: {e}')
+
+    @property
+    def package_manager(self) -> IPackageManager:
+        """Get the package manager for the current container"""
+        if not self._package_manager:
+            raise ContainerError(
+                'Container not created, package manager not available')
+        return self._package_manager
 
     def create(self, config: ContainerConfig) -> str:
         """Create a new container"""
@@ -59,6 +73,7 @@ class ContainerManager:
                     self._console.warning(f'Container: {self._container.name} '
                                           'already exists'
                                           )
+                    self._container = existing_container
                     return self._container.id
 
             self._console.info(f'Pulling image: {image_name}')
@@ -87,12 +102,20 @@ class ContainerManager:
             container_id = self._container.id
             self._console.success(
                 f'Container created successfully: {container_id}')
+
+            self._package_manager = PackageManager(
+                container_manager=self,
+                console=self._console,
+                config_manager=self._config_manager,
+                current_config=self._current_config
+            )
+
             return container_id
 
         except DockerException as e:
             self._console.error(f'Failed to create container: {e}')
             raise ContainerCreateError(f'Container creation failed: {e}')
-        
+
     def remove(self, force: bool = False) -> None:
         """Remove the container"""
         if not self._container:
@@ -111,6 +134,7 @@ class ContainerManager:
             self._console.success('Container removed successfully')
             self._container = None
             self._current_config = None
+            self._package_manager = None
 
         except DockerException as e:
             self._console.error(f'Failed to remove container: {e}')
@@ -216,40 +240,3 @@ class ContainerManager:
         except DockerException as e:
             self._console.error(f'Failed to get logs: {e}')
             return ''
-
-    def _get_package_manager(self) -> PackageManagerConfig:
-        """Get package manager configuration for current container"""
-        if not self._current_config:
-            raise ContainerError("No configuration available")
-        return self._config_manager.get_package_manager(
-            self._current_config.os_type)
-
-    def update_packages(self) -> None:
-        """Update package lists"""
-        pkg_manager = self._get_package_manager()
-        self.execute(pkg_manager.update_cmd)
-
-    def install_package(self, package_name: str) -> None:
-        """Install package using appropriate package manager"""
-        pkg_manager = self._get_package_manager()
-        self.execute(f"{pkg_manager.install_cmd} {package_name}")
-
-    def remove_package(self, package_name: str) -> None:
-        """Remove package using appropriate package manager"""
-        pkg_manager = self._get_package_manager()
-        self.execute(f"{pkg_manager.remove_cmd} {package_name}")
-
-    def search_package(self, query: str) -> str:
-        """Search for package using appropriate package manager"""
-        pkg_manager = self._get_package_manager()
-        return self.execute(f"{pkg_manager.search_cmd} {query}")
-
-    def list_installed_packages(self) -> str:
-        """List installed packages using appropriate package manager"""
-        pkg_manager = self._get_package_manager()
-        return self.execute(pkg_manager.list_cmd)
-
-    def clean_package_cache(self) -> None:
-        """Clean package cache using appropriate package manager"""
-        pkg_manager = self._get_package_manager()
-        self.execute(pkg_manager.clean_cmd)

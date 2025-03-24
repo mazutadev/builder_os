@@ -58,6 +58,7 @@ def main():
                 f'{env_config.output_dir}': '/app/output',
             },
         )
+
         try:
             console.info('Creating container')
             container_id = container_manager.create(config)
@@ -67,16 +68,16 @@ def main():
             console.info('Testing container')
             
 
-            output = container_manager.update_packages()
+            output = container_manager.package_manager.update_packages()
             console.debug(f'Update output: {output}')
 
 
             console.info('Installing squashfs-tools')
-            output = container_manager.install_package('squashfs-tools')
+            output = container_manager.package_manager.install_package('squashfs-tools')
             console.debug(f'Install output: {output}')
 
             console.info('Installing linux-image-6.1.0-1-generic')
-            output = container_manager.install_package('linux-image-generic')
+            output = container_manager.package_manager.install_package('linux-image-generic')
             console.debug(f'Install output: {output}')
 
             console.info('Updating initramfs')

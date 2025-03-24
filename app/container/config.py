@@ -1,29 +1,21 @@
 """
 Модуль конфигурации контейнеров.
 """
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
+from typing import Dict, Any
 from pathlib import Path
 import yaml
 
 from .types import (
-    OSType, ContainerConfig, PackageManager, PackageManagerConfig
+    OSType, ContainerConfig,
+    PackageManager, PackageManagerConfig,
+    DockerSettings
 )
 from .exceptions import ContainerConfigError
 from ..core.state_manager import StateManager
+from .interfaces.config_manager import IContainerConfigManager
 
 
-@dataclass
-class DockerSettings:
-    """Docker settings"""
-    socket_path: str = 'unix://var/run/docker.sock'
-    api_version: str = 'auto'
-    timeout: int = 120
-    tls: bool = False
-    cert_path: Optional[Path] = None
-
-
-class ContainerConfigManager:
+class ContainerConfigManager(IContainerConfigManager):
     """Manager for container configurations"""
 
     def __init__(self, state_manager: StateManager):
@@ -121,7 +113,10 @@ PACKAGE_MANAGER_CONFIGS: Dict[PackageManager, PackageManagerConfig] = {
         list_cmd="apt list",
         show_cmd="apt show",
         clean_cmd="apt clean",
-        require_packages=["apt", "apt-utils", "apt-transport-https", "ca-certificates", "curl", "gnupg-agent", "software-properties-common"]
+        require_packages=[
+            "apt", "apt-utils", "apt-transport-https", 
+            "ca-certificates", "curl", "gnupg-agent", 
+            "software-properties-common"]
     ),
     PackageManager.YUM: PackageManagerConfig(
         update_cmd="yum update -y",
@@ -132,7 +127,9 @@ PACKAGE_MANAGER_CONFIGS: Dict[PackageManager, PackageManagerConfig] = {
         list_cmd="yum list",
         show_cmd="yum show",
         clean_cmd="yum clean",
-        require_packages=["yum", "yum-utils", "epel-release", "python3", "python3-pip"]
+        require_packages=[
+            "yum", "yum-utils", "epel-release",
+            "python3", "python3-pip"]
     ),
     PackageManager.DNF: PackageManagerConfig(
         update_cmd="dnf update -y",
@@ -186,4 +183,5 @@ OS_PACKAGE_MANAGER_MAPPING: Dict[OSType, PackageManager] = {
     OSType.CENTOS: PackageManager.YUM,
     OSType.FEDORA: PackageManager.DNF,
     OSType.ALPINE: PackageManager.APK,
+    OSType.ARCHLINUX: PackageManager.PACMAN
 }
